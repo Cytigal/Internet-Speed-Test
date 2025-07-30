@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>网速测速器</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #1a2a6c, #b21f1f, #1a2a6c);
+            color: #fff;
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .container {
+            width: 100%;
+            max-width: 1000px;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.5);
+        }
+        
+        header {
+            text-align: center;
+            padding: 30px 20px;
+            background: rgba(0, 0, 0, 0.4);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            background: linear-gradient(to right, #4facfe, #00f2fe);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .subtitle {
+            font-size: 1.1rem;
+            opacity: 0.8;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        
+        .speedometer {
+            display: flex;
+            justify-content: space-between;
+            padding: 30px;
+            flex-wrap: wrap;
+        }
+        
+        .test-card {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            padding: 25px;
+            width: 30%;
+            min-width: 250px;
+            margin-bottom: 20px;
+            text-align: center;
+            transition: transform 0.3s, background 0.3s;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .test-card:hover {
+            transform: translateY(-5px);
+            background: rgba(255, 255, 255, 0.08);
+        }
+        
+        .test-card i {
+            font-size: 3rem;
+            margin-bottom: 20px;
+            background: linear-gradient(to right, #4facfe, #00f2fe);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .test-title {
+            font-size: 1.3rem;
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+        
+        .test-value {
+            font-size: 2.2rem;
+            font-weight: 700;
+            margin: 15px 0;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .test-unit {
+            font-size: 1.2rem;
+            opacity: 0.8;
+        }
+        
+        .progress-container {
+            height: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 5px;
+            overflow: hidden;
+            margin: 15px 0;
+        }
+        
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(to right, #00f2fe, #4facfe);
+            width: 0%;
+            transition: width 0.5s;
+        }
+        
+        .controls {
+            text-align: center;
+            padding: 20px;
+        }
+        
+        .btn {
+            background: linear-gradient(to right, #00c6ff, #0072ff);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            font-size: 1.2rem;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 600;
+            box-shadow: 0 5px 15px rgba(0, 114, 255, 0.4);
+        }
+        
+        .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(0, 114, 255, 0.6);
+        }
+        
+        .btn:active {
+            transform: translateY(1px);
+        }
+        
+        .btn:disabled {
+            background: #555;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .chart-container {
+            padding: 30px;
+            padding-top: 10px;
+            height: 300px;
+        }
+        
+        .status {
+            text-align: center;
+            padding: 15px;
+            font-size: 1.2rem;
+            min-height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #4facfe;
+        }
+        
+        .history {
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.3);
+            margin: 20px;
+            border-radius: 15px;
+        }
+        
+        .history h3 {
+            text-align: center;
+            margin-bottom: 15px;
+            color: #00f2fe;
+        }
+        
+        .history-items {
+            max-height: 150px;
+            overflow-y: auto;
+        }
+        
+        .history-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .history-item:last-child {
+            border-bottom: none;
+        }
+        
+        footer {
+            text-align: center;
+            padding: 20px;
+            font-size: 0.9rem;
+            opacity: 0.7;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        @media (max-width: 900px) {
+            .speedometer {
+                justify-content: center;
+            }
+            
+            .test-card {
+                width: 45%;
+                margin: 10px;
+            }
+        }
+        
+        @media (max-width: 600px) {
+            .test-card {
+                width: 100%;
+            }
+            
+            h1 {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1><i class="fas fa-tachometer-alt"></i> 网速测速器</h1>
+            <p class="subtitle">测试您的网络下载速度、上传速度和延迟，全面了解您的网络性能</p>
+        </header>
+        
+        <div class="status" id="status">
+            点击"开始测试"按钮检测您的网络速度
+        </div>
+        
+        <div class="speedometer">
+            <!-- 下载速度卡片 -->
+            <div class="test-card">
+                <i class="fas fa-download"></i>
+                <div class="test-title">下载速度</div>
+                <div class="test-value" id="download-value">--</div>
+                <div class="test-unit">Mbps</div>
+                <div class="progress-container">
+                    <div class="progress-bar" id="download-progress"></div>
+                </div>
+                <div class="test-desc">测量从互联网下载数据的速度</div>
+            </div>
+            
+            <!-- 上传速度卡片 -->
+            <div class="test-card">
+                <i class="fas fa-upload"></i>
+                <div class="test-title">上传速度</div>
+                <div class="test-value" id="upload-value">--</div>
+                <div class="test-unit">Mbps</div>
+                <div class="progress-container">
+                    <div class="progress-bar" id="upload-progress"></div>
+                </div>
+                <div class="test-desc">测量向互联网发送数据的速度</div>
+            </div>
+            
+            <!-- Ping延迟卡片 -->
+            <div class="test-card">
+                <i class="fas fa-signal"></i>
+                <div class="test-title">延迟 (Ping)</div>
+                <div class="test-value" id="ping-value">--</div>
+                <div class="test-unit">ms</div>
+                <div class="progress-container">
+                    <div class="progress-bar" id="ping-progress"></div>
+                </div>
+                <div class="test-desc">测量您的网络响应时间</div>
+            </div>
+        </div>
+        
+        <div class="controls">
+            <button id="start-btn" class="btn">
+                <i class="fas fa-play"></i> 开始测试
+            </button>
+        </div>
+        
+        <div class="chart-container">
+            <canvas id="speed-chart"></canvas>
+        </div>
+        
+        <div class="history">
+            <h3><i class="fas fa-history"></i> 最近测试记录</h3>
+            <div class="history-items" id="history-items">
+                <!-- 历史记录将通过JS动态添加 -->
+            </div>
+        </div>
+        
+        <footer>
+            <p>© 2023 网速测速器 | 注意：测试结果可能受多种因素影响，包括服务器负载、网络拥堵和设备性能</p>
+        </footer>
+    </div>
+
+    <script>
+        // 获取DOM元素
+        const startBtn = document.getElementById('start-btn');
+        const statusEl = document.getElementById('status');
+        const downloadValue = document.getElementById('download-value');
+        const uploadValue = document.getElementById('upload-value');
+        const pingValue = document.getElementById('ping-value');
+        const downloadProgress = document.getElementById('download-progress');
+        const uploadProgress = document.getElementById('upload-progress');
+        const pingProgress = document.getElementById('ping-progress');
+        const historyItems = document.getElementById('history-items');
+        
+        // 初始化测试数据
+        let testHistory = [];
+        let speedChart = null;
+        
+        // 初始化图表
+        function initChart() {
+            const ctx = document.getElementById('speed-chart').getContext('2d');
+            if (speedChart) {
+                speedChart.destroy();
+            }
+            
+            speedChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['下载速度', '上传速度', '延迟'],
+                    datasets: [{
+                        label: '网络测速结果',
+                        data: [0, 0, 0],
+                        backgroundColor: [
+                            'rgba(54, 162, 235, 0.7)',
+                            'rgba(75, 192, 192, 0.7)',
+                            'rgba(255, 159, 64, 0.7)'
+                        ],
+                        borderColor: [
+                            'rgba(54, 162, 235, 1)',
+                            'rgba(75, 192, 192, 1)',
+                            'rgba(255, 159, 64, 1)'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: '速度 (Mbps) / 延迟 (ms)',
+                                color: '#fff'
+                            },
+                            ticks: {
+                                color: '#fff'
+                            },
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            }
+                        },
+                        x: {
+                            ticks: {
+                                color: '#fff'
+                            },
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            labels: {
+                                color: '#fff'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        // 更新图表
+        function updateChart(download, upload, ping) {
+            speedChart.data.datasets[0].data = [download, upload, ping];
+            speedChart.update();
+        }
+        
+        // 添加历史记录
+        function addHistory(download, upload, ping) {
+            const now = new Date();
+            const timeString = now.toLocaleTimeString();
+            const dateString = now.toLocaleDateString();
+            
+            const historyEntry = {
+                id: Date.now(),
+                date: `${dateString} ${timeString}`,
+                download: download.toFixed(2),
+                upload: upload.toFixed(2),
+                ping: ping.toFixed(0)
+            };
+            
+            testHistory.unshift(historyEntry);
+            if (testHistory.length > 5) {
+                testHistory.pop();
+            }
+            
+            renderHistory();
+        }
+        
+        // 渲染历史记录
+        function renderHistory() {
+            historyItems.innerHTML = '';
+            testHistory.forEach(entry => {
+                const item = document.createElement('div');
+                item.className = 'history-item';
+                item.innerHTML = `
+                    <span>${entry.date}</span>
+                    <span>
+                        下载: <strong>${entry.download}</strong> Mbps,
+                        上传: <strong>${entry.upload}</strong> Mbps,
+                        Ping: <strong>${entry.ping}</strong> ms
+                    </span>
+                `;
+                historyItems.appendChild(item);
+            });
+        }
+        
+        // 更新进度条
+        function updateProgress(progressBar, value, max) {
+            const percentage = Math.min(100, (value / max) * 100);
+            progressBar.style.width = `${percentage}%`;
+        }
+        
+        // 测试下载速度
+        async function testDownloadSpeed() {
+            statusEl.textContent = "测试下载速度...";
+            downloadValue.textContent = "...";
+            
+            const testFileUrl = "https://source.unsplash.com/random/3000x2000";
+            const fileSizeInBytes = 2 * 1024 * 1024; // 2MB 测试文件
+            
+            try {
+                const startTime = Date.now();
+                const response = await fetch(`${testFileUrl}?${startTime}`);
+                const blob = await response.blob();
+                const endTime = Date.now();
+                
+                const duration = (endTime - startTime) / 1000; // 秒
+                const bitsLoaded = fileSizeInBytes * 8;
+                const speedMbps = (bitsLoaded / duration) / 1000000;
+                
+                downloadValue.textContent = speedMbps.toFixed(2);
+                updateProgress(downloadProgress, speedMbps, 100);
+                
+                return speedMbps;
+            } catch (error) {
+                console.error("下载测试失败:", error);
+                statusEl.textContent = "下载测试失败，请重试";
+                downloadValue.textContent = "错误";
+                return 0;
+            }
+        }
+        
+        // 测试上传速度
+        async function testUploadSpeed() {
+            statusEl.textContent = "测试上传速度...";
+            uploadValue.textContent = "...";
+            
+            const testData = new Blob([new ArrayBuffer(1 * 1024 * 1024)]); // 1MB 测试数据
+            const testUrl = "https://httpbin.org/post";
+            
+            try {
+                const startTime = Date.now();
+                const response = await fetch(testUrl, {
+                    method: "POST",
+                    body: testData
+                });
+                const endTime = Date.now();
+                
+                const duration = (endTime - startTime) / 1000; // 秒
+                const bitsLoaded = 1 * 1024 * 1024 * 8;
+                const speedMbps = (bitsLoaded / duration) / 1000000;
+                
+                uploadValue.textContent = speedMbps.toFixed(2);
+                updateProgress(uploadProgress, speedMbps, 50);
+                
+                return speedMbps;
+            } catch (error) {
+                console.error("上传测试失败:", error);
+                statusEl.textContent = "上传测试失败，请重试";
+                uploadValue.textContent = "错误";
+                return 0;
+            }
+        }
+        
+        // 测试延迟 (Ping)
+        async function testPing() {
+            statusEl.textContent = "测试延迟 (Ping)...";
+            pingValue.textContent = "...";
+            
+            const testUrl = "https://www.google.com/favicon.ico";
+            const startTime = Date.now();
+            
+            try {
+                await fetch(`${testUrl}?${startTime}`, { method: "HEAD" });
+                const endTime = Date.now();
+                const ping = endTime - startTime;
+                
+                pingValue.textContent = ping;
+                updateProgress(pingProgress, 100 - Math.min(100, ping / 10), 100);
+                
+                return ping;
+            } catch (error) {
+                console.error("Ping 测试失败:", error);
+                statusEl.textContent = "Ping 测试失败";
+                pingValue.textContent = "错误";
+                return 0;
+            }
+        }
+        
+        // 执行完整测试
+        async function runFullTest() {
+            startBtn.disabled = true;
+            startBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 测试中...';
+            
+            // 重置显示
+            downloadValue.textContent = "--";
+            uploadValue.textContent = "--";
+            pingValue.textContent = "--";
+            downloadProgress.style.width = "0%";
+            uploadProgress.style.width = "0%";
+            pingProgress.style.width = "0%";
+            
+            try {
+                // 测试 Ping
+                const ping = await testPing();
+                
+                // 测试下载速度
+                const download = await testDownloadSpeed();
+                
+                // 测试上传速度
+                const upload = await testUploadSpeed();
+                
+                // 更新图表
+                updateChart(download, upload, ping);
+                
+                // 添加到历史记录
+                addHistory(download, upload, ping);
+                
+                statusEl.textContent = "测试完成！";
+            } catch (error) {
+                console.error("测试失败:", error);
+                statusEl.textContent = "测试过程中发生错误";
+            } finally {
+                startBtn.disabled = false;
+                startBtn.innerHTML = '<i class="fas fa-redo"></i> 重新测试';
+            }
+        }
+        
+        // 事件监听
+        startBtn.addEventListener('click', runFullTest);
+        
+        // 初始化
+        window.addEventListener('load', () => {
+            initChart();
+            renderHistory();
+        });
+    </script>
+</body>
+</html>
